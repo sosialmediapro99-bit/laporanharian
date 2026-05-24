@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kas UMK Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #111118;
+            --card: #16161f;
+            --border: rgba(255,255,255,0.07);
+            --border-glow: rgba(120,100,255,0.3);
+            --text: #f0f0ff;
+            --muted: #6b6b88;
+            --accent: #7c6fff;
+            --accent2: #ff6bab;
+            --green: #2dce89;
+            --red: #f5365c;
+            --green-glow: rgba(45,206,137,0.15);
+            --red-glow: rgba(245,54,92,0.15);
+            --font: 'Plus Jakarta Sans', sans-serif;
+            --mono: 'DM Mono', monospace;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 90px;
+            overflow-x: hidden;
+        }
+
+        /* BG noise texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='512' height='512' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ======== LOGIN ======== */
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+        }
+
+        #login-screen.hidden { display: none; }
+
+        .login-wrap {
+            width: 90%;
+            max-width: 380px;
+            text-align: center;
+        }
+
+        .login-logo {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 0 40px rgba(124,111,255,0.4);
+        }
+
+        .login-title {
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 30%, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .login-sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 32px;
+        }
+
+        .pin-dots {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            margin-bottom: 28px;
+        }
+
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--muted);
+            background: transparent;
+            transition: all 0.2s;
+        }
+
+        .pin-dot.filled {
+            background: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(124,111,255,0.6);
+            transform: scale(1.1);
+        }
+
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .np-btn {
+            padding: 18px 10px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .np-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(124,111,255,0.3), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .np-btn:active::after { opacity: 1; }
+        .np-btn:active { transform: scale(0.93); border-color: var(--accent); }
+
+        .np-btn.del {
+            background: rgba(245,54,92,0.1);
+            border-color: rgba(245,54,92,0.2);
+            color: var(--red);
+            font-size: 22px;
+        }
+
+        .np-btn.submit {
+            grid-column: 2 / 4;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border: none;
+            font-size: 15px;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 20px rgba(124,111,255,0.35);
+        }
+
+        .np-btn.submit:active { transform: scale(0.96); }
+
+        .error-pin {
+            color: var(--red);
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 10px;
+            height: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .error-pin.show { opacity: 1; }
+
+        /* ======== APP ======== */
+        #app-screen { display: none; position: relative; z-index: 1; }
+        #app-screen.show { display: block; }
+
+        /* Header */
+        .header {
+            background: linear-gradient(160deg, #1a1830 0%, #0e0e16 100%);
+            padding: 20px 20px 24px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(124,111,255,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hdr-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .app-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .brand-name {
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-name span { color: var(--accent); }
+
+        .logout-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 14px;
+            color: var(--muted);
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+        .saldo-card {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(124,111,255,0.3);
+        }
+
+        .saldo-card::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            right: -10%;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .saldo-card::after {
+            content: '';
+            position: absolute;
+            bottom: -40%;
+            left: -5%;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .saldo-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 6px;
+        }
+
+        .saldo-amount {
+            font-family: var(--mono);
+            font-size: 30px;
+            font-weight: 500;
+            letter-spacing: -1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.in { background: var(--green-glow); }
+        .stat-icon.out { background: var(--red-glow); }
+
+        .stat-info { min-width: 0; }
+
+        .stat-val {
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stat-val.green { color: var(--green); }
+        .stat-val.red { color: var(--red); }
+
+        .stat-lbl {
+            font-size: 10px;
+            color: var(--muted);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Transaction List */
+        .container { padding: 16px; }
+
+        .sec-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .sec-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .tx-count {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .filter-tabs::-webkit-scrollbar { display: none; }
+
+        .f-tab {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: var(--font);
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--muted);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .f-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            box-shadow: 0 0 12px rgba(124,111,255,0.3);
+        }
+
+        /* TX Item */
+        .tx-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.25s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tx-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            border-radius: 3px 0 0 3px;
+        }
+
+        .tx-item.in::before { background: var(--green); }
+        .tx-item.out::before { background: var(--red); }
+
+        .tx-item:hover {
+            border-color: rgba(255,255,255,0.12);
+            transform: translateX(2px);
+        }
+
+        .tx-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .tx-item.in .tx-icon { background: var(--green-glow); }
+        .tx-item.out .tx-icon { background: var(--red-glow); }
+
+        .tx-body { flex: 1; min-width: 0; }
+
+        .tx-desc {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 3px;
+        }
+
+        .tx-date {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono);
+        }
+
+        .tx-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .tx-amount {
+            font-family: var(--mono);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .tx-amount.green { color: var(--green); }
+        .tx-amount.red { color: var(--red); }
+
+        .del-btn {
+            width: 28px;
+            height: 28px;
+            background: rgba(245,54,92,0.1);
+            border: 1px solid rgba(245,54,92,0.2);
+            border-radius: 8px;
+            color: var(--red);
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .del-btn:hover {
+            background: rgba(245,54,92,0.2);
+            transform: scale(1.1);
+        }
+
+        .del-btn:active { transform: scale(0.9); }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+        }
+
+        .empty-icon {
+            font-size: 52px;
+            margin-bottom: 14px;
+            display: block;
+            filter: grayscale(0.5);
+        }
+
+        .empty-text {
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            position: fixed;
+            bottom: 0; left: 0;
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(10,10,15,0.9);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 14px 10px;
+            border: none;
+            border-radius: 14px;
+            font-family: var(--font);
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-action:active { transform: scale(0.96); }
+
+        .btn-income {
+            background: linear-gradient(135deg, #2dce89, #20b374);
+            color: white;
+            box-shadow: 0 4px 16px rgba(45,206,137,0.3);
+        }
+
+        .btn-expense {
+            background: linear-gradient(135deg, #f5365c, #d62a4e);
+            color: white;
+            box-shadow: 0 4px 16px rgba(245,54,92,0.3);
+        }
+
+        .btn-print {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            flex: 0.45;
+            padding: 14px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-sheet {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            width: 100%;
+            max-width: 500px;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding: 24px;
+            animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-handle {
+            width: 36px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 0 auto 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group { margin-bottom: 16px; }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(124,111,255,0.1);
+        }
+
+        .form-group input::placeholder { color: var(--muted); }
+
+        .form-group input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5);
+            cursor: pointer;
+        }
+
+        .amount-prefix {
+            position: relative;
+        }
+
+        .amount-prefix::before {
+            content: 'Rp';
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .amount-prefix input {
+            padding-left: 42px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .btn-cancel {
+            flex: 1;
+            padding: 14px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--muted);
+            font-family: var(--font);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover { border-color: rgba(255,255,255,0.15); color: var(--text); }
+
+        .btn-save {
+            flex: 2;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-family: var(--font);
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-save.income { background: linear-gradient(135deg, #2dce89, #20b374); }
+        .btn-save.expense { background: linear-gradient(135deg, #f5365c, #d62a4e); }
+        .btn-save:active { transform: scale(0.97); }
+
+        /* Confirm Delete Modal */
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            z-index: 1500;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .confirm-modal.show { display: flex; }
+
+        .confirm-box {
+            background: var(--surface);
+            border: 1px solid rgba(245,54,92,0.3);
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            max-width: 340px;
+            text-align: center;
+            animation: popIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .confirm-icon {
+            font-size: 44px;
+            margin-bottom: 14px;
+        }
+
+        .confirm-title {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .confirm-desc {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .confirm-detail {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 22px;
+            color: var(--text);
+        }
+
+        .confirm-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .cbtn {
+            flex: 1;
+            padding: 13px;
+            border-radius: 12px;
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .cbtn.cancel {
+            background: var(--card);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        .cbtn.confirm {
+            background: linear-gradient(135deg, #f5365c, #d62a4e);
+            color: white;
+        }
+
+        .cbtn:active { transform: scale(0.96); }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            white-space: nowrap;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Chip badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge.in { background: var(--green-glow); color: var(--green); }
+        .badge.out { background: var(--red-glow); color: var(--red); }
+
+        /* Separator by date */
+        .date-separator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 14px 0 10px;
+        }
+
+        .date-sep-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .date-sep-text {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+            font-family: var(--mono);
+            white-space: nowrap;
+        }
+
+        /* Print */
+        @media print {
+            .action-bar, .logout-btn, .del-btn, .filter-tabs { display: none !important; }
+            body { background: white; color: black; padding-bottom: 0; }
+            .header { background: #f5f5f5 !important; color: black !important; position: static; }
+            .saldo-card { background: #eee !important; color: black !important; }
+            .tx-item { background: white !important; border: 1px solid #ddd !important; }
+            #login-screen { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+    <div class="login-wrap">
+        <div class="login-logo">💰</div>
+        <div class="login-title">Kas UMK Digital</div>
+        <div class="login-sub">Masukkan PIN 4 digit untuk masuk</div>
+        <div class="pin-dots" id="pin-dots">
+            <div class="pin-dot" id="dot-0"></div>
+            <div class="pin-dot" id="dot-1"></div>
+            <div class="pin-dot" id="dot-2"></div>
+            <div class="pin-dot" id="dot-3"></div>
+        </div>
+        <div class="numpad" id="numpad"></div>
+        <div class="error-pin" id="error-pin">❌ PIN salah, coba lagi</div>
+    </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+    <!-- Header -->
+    <div class="header">
+        <div class="hdr-top">
+            <div class="app-brand">
+                <div class="brand-icon">💼</div>
+                <div class="brand-name">Kas <span>UMK</span></div>
+            </div>
+            <button class="logout-btn" onclick="logout()">Keluar →</button>
+        </div>
+        <div class="saldo-card">
+            <div class="saldo-label">Saldo Saat Ini</div>
+            <div class="saldo-amount" id="balance">Rp 0</div>
+        </div>
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon in">📥</div>
+                <div class="stat-info">
+                    <div class="stat-val green" id="total-in">Rp 0</div>
+                    <div class="stat-lbl">Pemasukan</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon out">📤</div>
+                <div class="stat-info">
+                    <div class="stat-val red" id="total-out">Rp 0</div>
+                    <div class="stat-lbl">Pengeluaran</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction List -->
+    <div class="container">
+        <div class="sec-header">
+            <div class="sec-title">Riwayat</div>
+            <div class="tx-count" id="tx-count">0 transaksi</div>
+        </div>
+        <div class="filter-tabs">
+            <button class="f-tab active" onclick="setFilter('all', this)">Semua</button>
+            <button class="f-tab" onclick="setFilter('in', this)">Pemasukan</button>
+            <button class="f-tab" onclick="setFilter('out', this)">Pengeluaran</button>
+        </div>
+        <div id="tx-list"></div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+        <button class="btn-action btn-expense" onclick="openModal('out')">🛒 Beli</button>
+        <button class="btn-action btn-income" onclick="openModal('in')">💰 Terima</button>
+        <button class="btn-action btn-print" onclick="printData()">🖨️</button>
+    </div>
+</div>
+
+<!-- INPUT MODAL -->
+<div id="modal" class="modal" onclick="handleModalBackdrop(event)">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modal-title">Pemasukan</div>
+        <div class="form-group">
+            <label>Jumlah Uang</label>
+            <div class="amount-prefix">
+                <input type="number" id="amount" placeholder="0" inputmode="numeric">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Keterangan</label>
+            <input type="text" id="desc" placeholder="Contoh: Jual bakso, beli minyak...">
+        </div>
+        <div class="form-group">
+            <label>Tanggal</label>
+            <input type="date" id="date">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal()">Batal</button>
+            <button class="btn-save" id="btn-save" onclick="saveTx()">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div id="confirm-modal" class="confirm-modal">
+    <div class="confirm-box">
+        <div class="confirm-icon">🗑️</div>
+        <div class="confirm-title">Hapus Laporan?</div>
+        <div class="confirm-desc">Transaksi ini akan dihapus permanen dan tidak bisa dikembalikan.</div>
+        <div class="confirm-detail" id="confirm-detail">-</div>
+        <div class="confirm-btns">
+            <button class="cbtn cancel" onclick="closeConfirm()">Batal</button>
+            <button class="cbtn confirm" onclick="confirmDelete()">Ya, Hapus</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+    const CORRECT_PIN = '1234';
+    const STORAGE_KEY = 'kas_umk_v2';
+
+    let db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let currentType = 'in';
+    let pinInput = '';
+    let currentFilter = 'all';
+    let deletePendingId = null;
+
+    // ===== LOGIN =====
+    function buildNumpad() {
+        const pad = document.getElementById('numpad');
+        pad.innerHTML = '';
+        for (let i = 1; i <= 9; i++) {
+            const b = document.createElement('button');
+            b.className = 'np-btn';
+            b.textContent = i;
+            b.onclick = () => addPin(String(i));
+            pad.appendChild(b);
+        }
+        const del = document.createElement('button');
+        del.className = 'np-btn del';
+        del.textContent = '⌫';
+        del.onclick = delPin;
+        pad.appendChild(del);
+
+        const zero = document.createElement('button');
+        zero.className = 'np-btn';
+        zero.textContent = '0';
+        zero.onclick = () => addPin('0');
+        pad.appendChild(zero);
+
+        const ok = document.createElement('button');
+        ok.className = 'np-btn submit';
+        ok.textContent = '✓ BUKA';
+        ok.onclick = doLogin;
+        pad.appendChild(ok);
+    }
+
+    function addPin(d) {
+        if (pinInput.length >= 4) return;
+        pinInput += d;
+        updateDots();
+        if (pinInput.length === 4) setTimeout(doLogin, 200);
+    }
+
+    function delPin() {
+        pinInput = pinInput.slice(0, -1);
+        updateDots();
+    }
+
+    function updateDots() {
+        for (let i = 0; i < 4; i++) {
+            document.getElementById('dot-' + i).classList.toggle('filled', i < pinInput.length);
+        }
+    }
+
+    function doLogin() {
+        if (pinInput === CORRECT_PIN) {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.add('show');
+            pinInput = '';
+            updateDots();
+            init();
+        } else {
+            const err = document.getElementById('error-pin');
+            err.classList.add('show');
+            pinInput = '';
+            updateDots();
+            setTimeout(() => err.classList.remove('show'), 3000);
+        }
+    }
+
+    function logout() {
+        if (confirm('Yakin ingin keluar?')) {
+            pinInput = '';
+            updateDots();
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.remove('show');
+        }
+    }
+
+    // ===== INIT =====
+    function init() {
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        render();
+    }
+
+    // ===== MODAL =====
+    function openModal(type) {
+        currentType = type;
+        const isIn = type === 'in';
+        document.getElementById('modal-title').innerHTML = isIn ? '💰 Catat Pemasukan' : '🛒 Catat Pengeluaran';
+        document.getElementById('modal-title').style.color = isIn ? 'var(--green)' : 'var(--red)';
+        const saveBtn = document.getElementById('btn-save');
+        saveBtn.className = 'btn-save ' + (isIn ? 'income' : 'expense');
+        document.getElementById('amount').value = '';
+        document.getElementById('desc').value = '';
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('modal').classList.add('show');
+        setTimeout(() => document.getElementById('amount').focus(), 400);
+    }
+
+    function closeModal() {
+        document.getElementById('modal').classList.remove('show');
+    }
+
+    function handleModalBackdrop(e) {
+        if (e.target === document.getElementById('modal')) closeModal();
+    }
+
+    function saveTx() {
+        const amount = parseInt(document.getElementById('amount').value);
+        const desc = document.getElementById('desc').value.trim() || '-';
+        const date = document.getElementById('date').value;
+        if (!amount || amount <= 0) { showToast('❌ Masukkan jumlah yang valid!'); return; }
+        if (!date) { showToast('❌ Pilih tanggal!'); return; }
+        db.push({ id: Date.now(), type: currentType, amount, desc, date });
+        save();
+        closeModal();
+        render();
+        showToast(currentType === 'in' ? '✅ Pemasukan disimpan!' : '✅ Pengeluaran disimpan!');
+    }
+
+    // ===== DELETE =====
+    function askDelete(id) {
+        deletePendingId = id;
+        const tx = db.find(t => t.id === id);
+        if (!tx) return;
+        const sign = tx.type === 'in' ? '+' : '-';
+        document.getElementById('confirm-detail').textContent =
+            `${tx.desc} — ${sign}${formatRp(tx.amount)} (${formatDate(tx.date)})`;
+        document.getElementById('confirm-modal').classList.add('show');
+    }
+
+    function closeConfirm() {
+        deletePendingId = null;
+        document.getElementById('confirm-modal').classList.remove('show');
+    }
+
+    function confirmDelete() {
+        if (deletePendingId === null) return;
+        const idx = db.findIndex(t => t.id === deletePendingId);
+        if (idx !== -1) {
+            db.splice(idx, 1);
+            save();
+            render();
+            showToast('🗑️ Transaksi dihapus');
+        }
+        closeConfirm();
+    }
+
+    // ===== FILTER =====
+    function setFilter(f, el) {
+        currentFilter = f;
+        document.querySelectorAll('.f-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        render();
+    }
+
+    // ===== RENDER =====
+    function formatRp(n) {
+        return 'Rp ' + n.toLocaleString('id-ID');
+    }
+
+    function formatDate(d) {
+        return new Date(d + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function formatDateGroup(d) {
+        const now = new Date();
+        const dt = new Date(d + 'T00:00:00');
+        const diff = Math.floor((now - dt) / 86400000);
+        if (diff === 0) return 'Hari ini';
+        if (diff === 1) return 'Kemarin';
+        return dt.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+
+    function render() {
+        let tIn = 0, tOut = 0;
+        db.forEach(t => { if (t.type === 'in') tIn += t.amount; else tOut += t.amount; });
+        const bal = tIn - tOut;
+        document.getElementById('balance').textContent = formatRp(bal);
+        document.getElementById('total-in').textContent = formatRp(tIn);
+        document.getElementById('total-out').textContent = formatRp(tOut);
+
+        const filtered = db.filter(t => currentFilter === 'all' || t.type === currentFilter)
+                           .sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
+
+        document.getElementById('tx-count').textContent = filtered.length + ' transaksi';
+
+        const list = document.getElementById('tx-list');
+        list.innerHTML = '';
+
+        if (filtered.length === 0) {
+            list.innerHTML = `<div class="empty-state">
+                <span class="empty-icon">${currentFilter === 'in' ? '📥' : currentFilter === 'out' ? '📤' : '📭'}</span>
+                <div class="empty-text">Belum ada transaksi<br>Catat mulai hari ini!</div>
+            </div>`;
+            return;
+        }
+
+        let lastDate = '';
+        filtered.forEach(t => {
+            if (t.date !== lastDate) {
+                lastDate = t.date;
+                list.insertAdjacentHTML('beforeend', `
+                    <div class="date-separator">
+                        <div class="date-sep-line"></div>
+                        <div class="date-sep-text">${formatDateGroup(t.date)}</div>
+                        <div class="date-sep-line"></div>
+                    </div>`);
+            }
+
+            const isIn = t.type === 'in';
+            list.insertAdjacentHTML('beforeend', `
+                <div class="tx-item ${t.type}" id="tx-${t.id}">
+                    <div class="tx-icon">${isIn ? '📥' : '🛒'}</div>
+                    <div class="tx-body">
+                        <div class="tx-desc">${t.desc}</div>
+                        <div class="tx-date">${formatDate(t.date)}</div>
+                    </div>
+                    <div class="tx-right">
+                        <div class="tx-amount ${isIn ? 'green' : 'red'}">${isIn ? '+' : '-'}${formatRp(t.amount)}</div>
+                        <button class="del-btn" onclick="askDelete(${t.id})" title="Hapus transaksi">🗑</button>
+                    </div>
+                </div>`);
+        });
+    }
+
+    // ===== UTILS =====
+    function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function printData() {
+        window.print();
+    }
+
+    // ===== BOOT =====
+    window.addEventListener('DOMContentLoaded', () => {
+        buildNumpad();
+    });
+</script>
+</body>
+</html>
